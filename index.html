@@ -54,6 +54,53 @@
             position: absolute;
             border-radius: 50%;
         }
+        #building-menu {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(26, 26, 26, 0.95);
+            border: 1px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        .building-option {
+            width: 60px;
+            height: 60px;
+            background: #232323;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            color: #4a9eff;
+            font-size: 20px;
+            position: relative;
+        }
+        .building-option.selected {
+            background: #2a2a2a;
+            border-color: #4a9eff;
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.3);
+        }
+        .building-option:hover {
+            background: #2a2a2a;
+            border-color: #4a9eff;
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.2);
+        }
+        .hotkey {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            font-size: 12px;
+            color: #666;
+        }
         body {
             margin: 0;
             overflow: hidden;
@@ -70,6 +117,20 @@
     <div id="minimap">
         <div id="minimap-viewport"></div>
         <div id="minimap-player"></div>
+    </div>
+    <div id="building-menu">
+        <div class="building-option" data-key="1">
+            <span class="hotkey">1</span>
+            B1
+        </div>
+        <div class="building-option" data-key="2">
+            <span class="hotkey">2</span>
+            B2
+        </div>
+        <div class="building-option" data-key="3">
+            <span class="hotkey">3</span>
+            B3
+        </div>
     </div>
     <script src="scripts.js"></script>
 </body>
