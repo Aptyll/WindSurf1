@@ -249,8 +249,40 @@ function gameLoop() {
     updateCamera();
     updateGhostBuilding();
     updateBuildRange();
+    moveCamera();
     requestAnimationFrame(gameLoop);
 }
+
+// Edge scrolling functionality
+const cameraSpeed = 5; // Speed of camera movement
+const edgeThreshold = 20; // Distance from edge to trigger camera movement
+
+let moveLeft = false;
+let moveRight = false;
+let moveUp = false;
+let moveDown = false;
+
+function moveCamera() {
+    if (moveLeft) cameraX -= cameraSpeed;
+    if (moveRight) cameraX += cameraSpeed;
+    if (moveUp) cameraY -= cameraSpeed;
+    if (moveDown) cameraY += cameraSpeed;
+
+    // Clamp camera position to game boundaries
+    cameraX = Math.max(0, Math.min(cameraX, GAME_WIDTH - window.innerWidth));
+    cameraY = Math.max(0, Math.min(cameraY, GAME_HEIGHT - window.innerHeight));
+    updateCamera();
+}
+
+document.addEventListener('mousemove', (event) => {
+    const { clientX, clientY } = event;
+    const { innerWidth, innerHeight } = window;
+
+    moveLeft = clientX <= edgeThreshold;
+    moveRight = clientX >= innerWidth - edgeThreshold;
+    moveUp = clientY <= edgeThreshold;
+    moveDown = clientY >= innerHeight - edgeThreshold;
+});
 
 // Handle keyboard input
 document.addEventListener('keydown', (e) => {
@@ -281,4 +313,5 @@ document.addEventListener('keyup', (e) => {
 
 // Initialize
 centerCamera();
+setInterval(moveCamera, 1000 / 60); // 60 FPS
 gameLoop();
