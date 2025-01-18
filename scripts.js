@@ -11,6 +11,8 @@ const GAME_HEIGHT = 4000;
 const MINIMAP_SIZE = 200;
 const GRID_SIZE = 50;
 const BUILD_RANGE = 300; // Maximum distance from player to build
+const BUILD_COOLDOWN = 3000; // 3 seconds cooldown
+let buildingCooldown = false;
 
 let x = GAME_WIDTH / 2;
 let y = GAME_HEIGHT / 2;
@@ -74,16 +76,27 @@ function updateGhostBuilding() {
 }
 
 function placeBuilding(x, y) {
-    // Check for collisions before placing
-    if (checkBuildingCollision(x, y)) {
-        return false;
-    }
+    if (buildingCooldown) return; // Prevent building if cooldown is active
+    buildingCooldown = true; // Activate cooldown
 
     const building = document.createElement('div');
     building.className = 'building';
-    building.style.left = x + 'px';
-    building.style.top = y + 'px';
-    gameArea.appendChild(building);
+    building.style.position = 'absolute';
+    building.style.left = `${x}px`;
+    building.style.top = `${y}px`;
+    building.style.opacity = 0; // Start with low opacity
+    document.getElementById('gameArea').appendChild(building);
+
+    // Gradually build the structure over time
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += 100; // Update progress
+        building.style.opacity = progress / 1000; // Fade in effect from 0 to 1
+        if (progress >= 1000) {
+            clearInterval(interval);
+            buildingCooldown = false; // Reset cooldown
+        }
+    }, BUILD_COOLDOWN / 10); // Adjust the interval timing
 
     // Create minimap indicator for the building
     const minimapBuilding = document.createElement('div');
@@ -243,6 +256,42 @@ document.addEventListener('keyup', (e) => {
     } else if (keys.hasOwnProperty(key)) {
         keys[key] = false;
     }
+});
+
+// Touch controls for mobile
+viewport.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    const touch = e.touches[0];
+    const rect = viewport.getBoundingClientRect();
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+
+    // Move player or place building based on touch position
+    if (selectedBuilding) {
+        const { gridX, gridY, isValid } = updateGhostBuilding();
+        if (isValid) {
+            placeBuilding(gridX, gridY);
+        }
+    } else {
+        x = touchX;
+        y = touchY;
+    }
+});
+
+viewport.addEventListener('touchmove', (e) => {
+    e.preventDefault(); // Prevent default touch behavior
+    const touch = e.touches[0];
+    const rect = viewport.getBoundingClientRect();
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+
+    // Update player position based on touch movement
+    x = touchX;
+    y = touchY;
+});
+
+viewport.addEventListener('touchend', (e) => {
+    // Handle touch end event if needed
 });
 
 // Initialize
