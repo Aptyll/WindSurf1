@@ -82,6 +82,30 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+// Building selection
+const buildingOptions = document.querySelectorAll('.building-option');
+let selectedBuilding = null;
+
+function selectBuilding(building) {
+    // Remove previous selection
+    if (selectedBuilding) {
+        selectedBuilding.classList.remove('selected');
+    }
+    
+    // Add new selection
+    if (building !== selectedBuilding) {
+        building.classList.add('selected');
+        selectedBuilding = building;
+    } else {
+        selectedBuilding = null;
+    }
+}
+
+// Handle building clicks
+buildingOptions.forEach(building => {
+    building.addEventListener('click', () => selectBuilding(building));
+});
+
 // Handle keyboard input
 document.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
@@ -89,6 +113,14 @@ document.addEventListener('keydown', (e) => {
         keys.space = true;
     } else if (keys.hasOwnProperty(key)) {
         keys[key] = true;
+    }
+    
+    // Building hotkeys (1,2,3)
+    if (key >= '1' && key <= '3') {
+        const building = document.querySelector(`.building-option[data-key="${key}"]`);
+        if (building) {
+            selectBuilding(building);
+        }
     }
 });
 
