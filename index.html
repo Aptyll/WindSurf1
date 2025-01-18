@@ -24,6 +24,23 @@
             border-radius: 4px;
             box-shadow: 0 0 20px rgba(74, 158, 255, 0.2);
         }
+        #minimap {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 200px;
+            background: #232323;
+            border: 2px solid #333;
+            border-radius: 4px;
+        }
+        #minimap-player {
+            width: 4px;
+            height: 4px;
+            background: #4a9eff;
+            position: absolute;
+            border-radius: 50%;
+        }
         body {
             margin: 0;
             overflow: hidden;
@@ -34,6 +51,9 @@
 <body>
     <div id="gameArea">
         <div id="player"></div>
+    </div>
+    <div id="minimap">
+        <div id="minimap-player"></div>
     </div>
     <script src="scripts.js"></script>
 </body>
