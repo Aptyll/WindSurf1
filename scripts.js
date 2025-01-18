@@ -11,8 +11,6 @@ const GAME_HEIGHT = 4000;
 const MINIMAP_SIZE = 200;
 const GRID_SIZE = 50;
 const BUILD_RANGE = 300; // Maximum distance from player to build
-const BUILD_COOLDOWN = 3000; // 3 seconds cooldown
-let buildingCooldown = false;
 
 let x = GAME_WIDTH / 2;
 let y = GAME_HEIGHT / 2;
@@ -76,8 +74,10 @@ function updateGhostBuilding() {
 }
 
 function placeBuilding(x, y) {
-    if (buildingCooldown) return; // Prevent building if cooldown is active
-    buildingCooldown = true; // Activate cooldown
+    // Check for collisions before placing
+    if (checkBuildingCollision(x, y)) {
+        return false;
+    }
 
     const building = document.createElement('div');
     building.className = 'building';
@@ -94,9 +94,8 @@ function placeBuilding(x, y) {
         building.style.opacity = progress / 1000; // Fade in effect from 0 to 1
         if (progress >= 1000) {
             clearInterval(interval);
-            buildingCooldown = false; // Reset cooldown
         }
-    }, BUILD_COOLDOWN / 10); // Adjust the interval timing
+    }, 200); // Adjust the interval timing for gradual building effect
 
     // Create minimap indicator for the building
     const minimapBuilding = document.createElement('div');
@@ -118,6 +117,28 @@ function placeBuilding(x, y) {
     return true;
 }
 
+function buildWithCooldown(buildFunction, cooldownTime, totalBuildings) {
+    let count = 0;
+    let isOnCooldown = false;
+    const interval = setInterval(() => {
+        if (count < totalBuildings && !isOnCooldown) {
+            console.log(`Building structure ${count + 1}`); // Log building action
+            console.log('Calling build function...'); // Log build function call
+            buildFunction(); // Call the building function
+            console.log('Build function called successfully.'); // Log build function success
+            count++;
+            isOnCooldown = true;
+            setTimeout(() => {
+                console.log('Cooldown ended.'); // Log cooldown end
+                isOnCooldown = false;
+            }, cooldownTime);
+        } else if (count >= totalBuildings) {
+            clearInterval(interval); // Clear the interval when done
+            console.log('All buildings have been placed.'); // Log completion
+        }
+    }, 1);
+}
+
 // Mouse position tracking
 viewport.addEventListener('mousemove', (e) => {
     const rect = viewport.getBoundingClientRect();
@@ -130,7 +151,7 @@ viewport.addEventListener('click', (e) => {
     if (selectedBuilding) {
         const { gridX, gridY, isValid } = updateGhostBuilding();
         if (isValid) {
-            placeBuilding(gridX, gridY);
+            buildWithCooldown(() => placeBuilding(gridX, gridY), 2000, 5); // Builds 5 structures with a 2-second cooldown
         }
     }
 });
@@ -181,10 +202,6 @@ buildingOptions.forEach(building => {
 });
 
 function updateCamera() {
-    cameraX = x - window.innerWidth / 2;
-    cameraY = y - window.innerHeight / 2;
-
-    // Update the camera position based on player's coordinates
     gameArea.style.transform = `translate(${-cameraX}px, ${-cameraY}px)`;
     
     const viewportWidth = (window.innerWidth / GAME_WIDTH) * MINIMAP_SIZE;
