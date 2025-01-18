@@ -21,6 +21,7 @@
             position: absolute;
             left: 50%;
             top: 50%;
+            transform: translate(-50%, -50%);
             border-radius: 4px;
             box-shadow: 0 0 20px rgba(74, 158, 255, 0.2);
         }
@@ -53,6 +54,14 @@
             background: #4a9eff;
             position: absolute;
             border-radius: 50%;
+        }
+        .minimap-building {
+            width: 3px;
+            height: 3px;
+            background: #4a9eff;
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.8;
         }
         #building-menu {
             position: fixed;
@@ -101,6 +110,50 @@
             font-size: 12px;
             color: #666;
         }
+        .ghost-building {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: rgba(74, 158, 255, 0.2);
+            border: 2px solid rgba(74, 158, 255, 0.5);
+            pointer-events: none;
+            display: none;
+            z-index: 1000;
+        }
+        .ghost-building.invalid {
+            background: rgba(255, 82, 82, 0.2);
+            border: 2px solid rgba(255, 82, 82, 0.5);
+        }
+        .building {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: #4a9eff;
+            border-radius: 4px;
+        }
+        .build-range {
+            position: absolute;
+            border: 2px solid rgba(74, 158, 255, 0.3);
+            pointer-events: none;
+            display: none;
+            transform: translate(-50%, -50%);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                border-color: rgba(74, 158, 255, 0.1);
+                box-shadow: 0 0 10px rgba(74, 158, 255, 0.1);
+            }
+            50% {
+                border-color: rgba(74, 158, 255, 0.3);
+                box-shadow: 0 0 10px rgba(74, 158, 255, 0.2);
+            }
+            100% {
+                border-color: rgba(74, 158, 255, 0.1);
+                box-shadow: 0 0 10px rgba(74, 158, 255, 0.1);
+            }
+        }
         body {
             margin: 0;
             overflow: hidden;
@@ -112,6 +165,8 @@
     <div id="viewport">
         <div id="gameArea">
             <div id="player"></div>
+            <div id="build-range" class="build-range"></div>
+            <div id="ghost-building" class="ghost-building"></div>
         </div>
     </div>
     <div id="minimap">
