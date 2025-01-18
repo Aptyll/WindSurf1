@@ -185,7 +185,7 @@ function updateCamera() {
     cameraY = y - window.innerHeight / 2;
 
     // Update the camera position based on player's coordinates
-    viewport.style.transform = `translate(${-cameraX}px, ${-cameraY}px)`;
+    gameArea.style.transform = `translate(${-cameraX}px, ${-cameraY}px)`;
     
     const viewportWidth = (window.innerWidth / GAME_WIDTH) * MINIMAP_SIZE;
     const viewportHeight = (window.innerHeight / GAME_HEIGHT) * MINIMAP_SIZE;
@@ -260,42 +260,6 @@ document.addEventListener('keyup', (e) => {
     } else if (keys.hasOwnProperty(key)) {
         keys[key] = false;
     }
-});
-
-// Touch controls for mobile
-viewport.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // Prevent default touch behavior
-    const touch = e.touches[0];
-    const rect = viewport.getBoundingClientRect();
-    const touchX = touch.clientX - rect.left;
-    const touchY = touch.clientY - rect.top;
-
-    // Move player or place building based on touch position
-    if (selectedBuilding) {
-        const { gridX, gridY, isValid } = updateGhostBuilding();
-        if (isValid) {
-            placeBuilding(gridX, gridY);
-        }
-    } else {
-        x = touchX;
-        y = touchY;
-    }
-});
-
-viewport.addEventListener('touchmove', (e) => {
-    e.preventDefault(); // Prevent default touch behavior
-    const touch = e.touches[0];
-    const rect = viewport.getBoundingClientRect();
-    const touchX = touch.clientX - rect.left;
-    const touchY = touch.clientY - rect.top;
-
-    // Update player position based on touch movement
-    x = touchX;
-    y = touchY;
-});
-
-viewport.addEventListener('touchend', (e) => {
-    // Handle touch end event if needed
 });
 
 // Initialize
