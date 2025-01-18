@@ -181,7 +181,11 @@ buildingOptions.forEach(building => {
 });
 
 function updateCamera() {
-    gameArea.style.transform = `translate(${-cameraX}px, ${-cameraY}px)`;
+    cameraX = x - window.innerWidth / 2;
+    cameraY = y - window.innerHeight / 2;
+
+    // Update the camera position based on player's coordinates
+    viewport.style.transform = `translate(${-cameraX}px, ${-cameraY}px)`;
     
     const viewportWidth = (window.innerWidth / GAME_WIDTH) * MINIMAP_SIZE;
     const viewportHeight = (window.innerHeight / GAME_HEIGHT) * MINIMAP_SIZE;
