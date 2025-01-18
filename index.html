@@ -6,8 +6,8 @@
         #gameArea {
             background: #1a1a1a;
             position: relative;
-            width: 100vw;
-            height: 100vh;
+            width: 4000px;
+            height: 4000px;
             overflow: hidden;
             background-image:
                 linear-gradient(#232323 1px, transparent 1px),
@@ -24,6 +24,14 @@
             border-radius: 4px;
             box-shadow: 0 0 20px rgba(74, 158, 255, 0.2);
         }
+        #viewport {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
         #minimap {
             position: fixed;
             bottom: 20px;
@@ -33,6 +41,11 @@
             background: #232323;
             border: 2px solid #333;
             border-radius: 4px;
+        }
+        #minimap-viewport {
+            border: 1px solid #4a9eff;
+            position: absolute;
+            pointer-events: none;
         }
         #minimap-player {
             width: 4px;
@@ -49,10 +62,13 @@
     </style>
 </head>
 <body>
-    <div id="gameArea">
-        <div id="player"></div>
+    <div id="viewport">
+        <div id="gameArea">
+            <div id="player"></div>
+        </div>
     </div>
     <div id="minimap">
+        <div id="minimap-viewport"></div>
         <div id="minimap-player"></div>
     </div>
     <script src="scripts.js"></script>
