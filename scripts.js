@@ -5,18 +5,185 @@ const viewport = document.getElementById('viewport');
 const minimapViewport = document.getElementById('minimap-viewport');
 const ghostBuilding = document.getElementById('ghost-building');
 const buildRange = document.getElementById('build-range');
+const fogContainer = document.getElementById('fog-container');
+const minimapFogContainer = document.getElementById('minimap-fog-container');
+const buildingMenu = document.getElementById('building-menu');
+const buildingOptions = Array.from(document.querySelectorAll('.building-option'));
+
+// Initialize building menu
+if (buildingOptions.length === 0) {
+    console.error('Building options not found!');
+} else {
+    console.log('Found', buildingOptions.length, 'building options');
+    buildingOptions.forEach(option => {
+        console.log('Building option:', option.dataset.key);
+    });
+}
 
 const GAME_WIDTH = 4000;
 const GAME_HEIGHT = 4000;
 const MINIMAP_SIZE = 200;
 const GRID_SIZE = 50;
-const BUILD_RANGE = 300; // Maximum distance from player to build
+const BUILD_RANGE = 200;  // Reduced from 300 to 200 for smaller range
+const CHUNK_SIZE = 100;  // Changed from 50 to 100
+const VISION_RANGE = 250; // Reveal 5x5 grid squares around player
+
+// Initialize fog of war
+const chunks = new Map(); // Store fog chunks by their coordinates
+const minimapChunks = new Map();
+
+let fogUpdatePending = false;
+let lastPlayerChunkX = null;
+let lastPlayerChunkY = null;
+
+function initializeFog() {
+    const numChunksX = Math.ceil(GAME_WIDTH / CHUNK_SIZE);
+    const numChunksY = Math.ceil(GAME_HEIGHT / CHUNK_SIZE);
+    
+    for (let cy = 0; cy < numChunksY; cy++) {
+        for (let cx = 0; cx < numChunksX; cx++) {
+            const chunk = document.createElement('div');
+            chunk.className = 'fog-chunk';
+            chunk.style.left = (cx * CHUNK_SIZE) + 'px';
+            chunk.style.top = (cy * CHUNK_SIZE) + 'px';
+            fogContainer.appendChild(chunk);
+            chunks.set(`${cx},${cy}`, chunk);
+        }
+    }
+}
+
+function initializeMinimapFog() {
+    const chunkSize = MINIMAP_SIZE / (GAME_WIDTH / CHUNK_SIZE); // Scale chunks to minimap size
+    const numChunksX = Math.ceil(GAME_WIDTH / CHUNK_SIZE);
+    const numChunksY = Math.ceil(GAME_HEIGHT / CHUNK_SIZE);
+    
+    for (let cy = 0; cy < numChunksY; cy++) {
+        for (let cx = 0; cx < numChunksX; cx++) {
+            const chunk = document.createElement('div');
+            chunk.className = 'minimap-fog-chunk';
+            chunk.style.left = (cx * chunkSize) + 'px';
+            chunk.style.top = (cy * chunkSize) + 'px';
+            chunk.style.width = chunkSize + 'px';
+            chunk.style.height = chunkSize + 'px';
+            minimapFogContainer.appendChild(chunk);
+            minimapChunks.set(`${cx},${cy}`, chunk);
+        }
+    }
+}
+
+function updateFogOfWar() {
+    // Calculate player center position and chunk
+    const playerCenterX = x + 25;
+    const playerCenterY = y + 25;
+    const playerChunkX = Math.floor(playerCenterX / CHUNK_SIZE);
+    const playerChunkY = Math.floor(playerCenterY / CHUNK_SIZE);
+    
+    // Calculate visible area in chunks
+    const visibleStartX = Math.floor(cameraX / CHUNK_SIZE);
+    const visibleEndX = Math.ceil((cameraX + window.innerWidth) / CHUNK_SIZE);
+    const visibleStartY = Math.floor(cameraY / CHUNK_SIZE);
+    const visibleEndY = Math.ceil((cameraY + window.innerHeight) / CHUNK_SIZE);
+    
+    // Calculate vision radius in chunks
+    const chunkRadius = 3;   // Adjusted for new chunk size to maintain similar vision range
+    
+    // Reset chunks that were visible but aren't anymore
+    chunks.forEach((chunk, key) => {
+        const [cx, cy] = key.split(',').map(Number);
+        
+        // Skip chunks outside visible area
+        if (cx < visibleStartX || cx > visibleEndX || cy < visibleStartY || cy > visibleEndY) {
+            if (chunk.classList.contains('visible')) {
+                chunk.classList.remove('visible');
+                if (!chunk.classList.contains('explored')) {
+                    chunk.classList.add('explored');
+                }
+            }
+            return;
+        }
+        
+        // Check if chunk should be visible
+        const inPlayerVision = Math.abs(cx - playerChunkX) <= chunkRadius && 
+                             Math.abs(cy - playerChunkY) <= chunkRadius;
+        
+        // Check if chunk is in building vision
+        let inBuildingVision = false;
+        for (const building of placedBuildings) {
+            const buildingChunkX = Math.floor((building.x + 50) / CHUNK_SIZE);
+            const buildingChunkY = Math.floor((building.y + 50) / CHUNK_SIZE);
+            if (Math.abs(cx - buildingChunkX) <= 2 && Math.abs(cy - buildingChunkY) <= 2) {
+                inBuildingVision = true;
+                break;
+            }
+        }
+        
+        // Update chunk state only if it changed
+        const shouldBeVisible = inPlayerVision || inBuildingVision;
+        const isVisible = chunk.classList.contains('visible');
+        
+        if (shouldBeVisible !== isVisible) {
+            if (shouldBeVisible) {
+                chunk.classList.add('visible');
+                chunk.classList.add('explored');
+            } else {
+                chunk.classList.remove('visible');
+                if (!chunk.classList.contains('explored')) {
+                    chunk.classList.add('explored');
+                }
+            }
+        }
+    });
+    
+    // Update minimap fog to match main fog (only for visible chunks)
+    minimapChunks.forEach((minimapChunk, key) => {
+        const mainChunk = chunks.get(key);
+        if (mainChunk) {
+            const [cx, cy] = key.split(',').map(Number);
+            // Only update if in visible area
+            if (cx >= visibleStartX && cx <= visibleEndX && cy >= visibleStartY && cy <= visibleEndY) {
+                minimapChunk.className = 'minimap-fog-chunk';
+                if (mainChunk.classList.contains('explored')) {
+                    minimapChunk.classList.add('explored');
+                }
+                if (mainChunk.classList.contains('visible')) {
+                    minimapChunk.classList.add('visible');
+                }
+            }
+        }
+    });
+}
+
+function updateMinimapFog() {
+    // Reset all minimap chunks to match main fog chunks
+    chunks.forEach((mainChunk, key) => {
+        const minimapChunk = minimapChunks.get(key);
+        if (minimapChunk) {
+            minimapChunk.className = 'minimap-fog-chunk';
+            if (mainChunk.classList.contains('explored')) {
+                minimapChunk.classList.add('explored');
+            }
+            if (mainChunk.classList.contains('visible')) {
+                minimapChunk.classList.add('visible');
+            }
+        }
+    });
+}
+
+function scheduleFogUpdate() {
+    if (!fogUpdatePending) {
+        fogUpdatePending = true;
+        requestAnimationFrame(() => {
+            updateFogOfWar();
+            fogUpdatePending = false;
+        });
+    }
+}
 
 let x = GAME_WIDTH / 2;
 let y = GAME_HEIGHT / 2;
 let cameraX = x - window.innerWidth / 2;
 let cameraY = y - window.innerHeight / 2;
-const speed = 5;
+const speed = 2; // player speed
 
 // Track pressed keys
 const keys = {
@@ -27,8 +194,10 @@ const keys = {
     space: false
 };
 
+// Add camera follow state
+let cameraFollowEnabled = false;
+
 // Building system
-const buildingOptions = document.querySelectorAll('.building-option');
 let selectedBuilding = null;
 let mouseX = 0;
 let mouseY = 0;
@@ -165,6 +334,7 @@ viewport.addEventListener('contextmenu', (e) => {
 });
 
 function selectBuilding(building) {
+    console.log('Selecting building:', building);
     // Remove previous selection
     if (selectedBuilding) {
         selectedBuilding.classList.remove('selected');
@@ -174,8 +344,10 @@ function selectBuilding(building) {
     if (building !== selectedBuilding) {
         building.classList.add('selected');
         selectedBuilding = building;
+        console.log('New building selected');
     } else {
         selectedBuilding = null;
+        console.log('Building deselected');
     }
     
     // Update build range visibility
@@ -185,12 +357,12 @@ function selectBuilding(building) {
 function updateBuildRange() {
     if (selectedBuilding) {
         buildRange.style.display = 'block';
-        buildRange.style.left = x + 'px';
-        buildRange.style.top = y + 'px';
-        // Make sure the range is divisible by grid size
-        const rangeSize = Math.floor(BUILD_RANGE / GRID_SIZE) * GRID_SIZE * 2;
-        buildRange.style.width = rangeSize + 'px';
-        buildRange.style.height = rangeSize + 'px';
+        buildRange.style.width = (BUILD_RANGE * 2) + 'px';
+        buildRange.style.height = (BUILD_RANGE * 2) + 'px';
+        
+        // Use exact player position for smooth movement
+        buildRange.style.left = (x + 25) + 'px';  // Add half player width
+        buildRange.style.top = (y + 25) + 'px';   // Add half player height
     } else {
         buildRange.style.display = 'none';
     }
@@ -202,6 +374,11 @@ buildingOptions.forEach(building => {
 });
 
 function updateCamera() {
+    // Center camera if space is held OR camera follow is enabled
+    if (keys.space || cameraFollowEnabled) {
+        centerCamera();
+    }
+    
     gameArea.style.transform = `translate(${-cameraX}px, ${-cameraY}px)`;
     
     const viewportWidth = (window.innerWidth / GAME_WIDTH) * MINIMAP_SIZE;
@@ -246,10 +423,22 @@ function gameLoop() {
     }
     
     updatePosition();
+    
+    // Only update fog if player moved to new chunk
+    const currentChunkX = Math.floor((x + 25) / CHUNK_SIZE);
+    const currentChunkY = Math.floor((y + 25) / CHUNK_SIZE);
+    
+    if (currentChunkX !== lastPlayerChunkX || currentChunkY !== lastPlayerChunkY) {
+        lastPlayerChunkX = currentChunkX;
+        lastPlayerChunkY = currentChunkY;
+        scheduleFogUpdate();
+    }
+    
     updateCamera();
     updateGhostBuilding();
     updateBuildRange();
     moveCamera();
+    
     requestAnimationFrame(gameLoop);
 }
 
@@ -277,7 +466,7 @@ function moveCamera() {
 document.addEventListener('mousemove', (event) => {
     const { clientX, clientY } = event;
     const { innerWidth, innerHeight } = window;
-
+    
     moveLeft = clientX <= edgeThreshold;
     moveRight = clientX >= innerWidth - edgeThreshold;
     moveUp = clientY <= edgeThreshold;
@@ -287,16 +476,29 @@ document.addEventListener('mousemove', (event) => {
 // Handle keyboard input
 document.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
+    
+    // Handle spacebar
     if (key === ' ') {
         keys.space = true;
-    } else if (keys.hasOwnProperty(key)) {
+        return;
+    }
+    
+    // Handle WASD
+    if (key in keys) {
         keys[key] = true;
     }
     
+    // Toggle camera follow with 'Y' key
+    if (key === 'y') {
+        cameraFollowEnabled = !cameraFollowEnabled;
+    }
+    
     // Building hotkeys (1,2,3)
-    if (key >= '1' && key <= '3') {
-        const building = document.querySelector(`.building-option[data-key="${key}"]`);
+    if (e.key >= '1' && e.key <= '3') {
+        console.log('Building hotkey pressed:', e.key);
+        const building = buildingOptions.find(b => b.dataset.key === e.key);
         if (building) {
+            console.log('Found building:', building);
             selectBuilding(building);
         }
     }
@@ -304,14 +506,22 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('keyup', (e) => {
     const key = e.key.toLowerCase();
+    
+    // Handle spacebar
     if (key === ' ') {
         keys.space = false;
-    } else if (keys.hasOwnProperty(key)) {
+        return;
+    }
+    
+    // Handle WASD
+    if (key in keys) {
         keys[key] = false;
     }
 });
 
 // Initialize
+initializeFog();
+initializeMinimapFog();
 centerCamera();
 setInterval(moveCamera, 1000 / 60); // 60 FPS
 gameLoop();
