@@ -1,4 +1,3 @@
-# asdf
 <!DOCTYPE html>
 <html>
 <head>
@@ -14,6 +13,28 @@
                 linear-gradient(#232323 1px, transparent 1px),
                 linear-gradient(90deg, #232323 1px, transparent 1px);
             background-size: 50px 50px;
+        }
+        .fog-chunk {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: #0a0a0a;
+            transition: opacity 0.15s ease;
+        }
+        .fog-chunk.explored {
+            opacity: 0.6;
+        }
+        .fog-chunk.visible {
+            opacity: 0;
+        }
+        #fog-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
         }
         #player {
             width: 50px;
@@ -33,6 +54,7 @@
             width: 100vw;
             height: 100vh;
             overflow: hidden;
+            z-index: 2;
         }
         #minimap {
             position: fixed;
@@ -43,18 +65,40 @@
             background: #232323;
             border: 2px solid #333;
             border-radius: 4px;
+            z-index: 3;
+        }
+        .minimap-fog-chunk {
+            position: absolute;
+            background: #0a0a0a;
+            transition: opacity 0.15s ease;
+        }
+        .minimap-fog-chunk.explored {
+            opacity: 0.6;
+        }
+        .minimap-fog-chunk.visible {
+            opacity: 0;
+        }
+        #minimap-fog-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
         }
         #minimap-viewport {
             border: 1px solid #4a9eff;
             position: absolute;
             pointer-events: none;
+            z-index: 2;
         }
         #minimap-player {
             width: 4px;
             height: 4px;
-            background: #4a9eff;
+            background: #00ffff;
             position: absolute;
-            border-radius: 50%;
+            z-index: 2;
         }
         .minimap-building {
             width: 3px;
@@ -76,6 +120,8 @@
             border: 1px solid #333;
             border-radius: 8px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            color: white;
         }
         .building-option {
             width: 60px;
@@ -93,6 +139,7 @@
             color: #4a9eff;
             font-size: 20px;
             position: relative;
+            z-index: 1001;
         }
         .building-option.selected {
             background: #2a2a2a;
@@ -139,6 +186,11 @@
             display: none;
             transform: translate(-50%, -50%);
             animation: pulse 2s infinite;
+            z-index: 999;
+            border-radius: 0;
+            width: 600px;
+            height: 600px;
+            box-shadow: 0 0 20px rgba(74, 158, 255, 0.2);
         }
 
         @keyframes pulse {
@@ -166,13 +218,15 @@
     <div id="viewport">
         <div id="gameArea">
             <div id="player"></div>
-            <div id="build-range" class="build-range"></div>
+            <div id="fog-container"></div>
             <div id="ghost-building" class="ghost-building"></div>
+            <div id="build-range" class="build-range"></div>
         </div>
     </div>
     <div id="minimap">
         <div id="minimap-viewport"></div>
         <div id="minimap-player"></div>
+        <div id="minimap-fog-container"></div>
     </div>
     <div id="building-menu">
         <div class="building-option" data-key="1">
