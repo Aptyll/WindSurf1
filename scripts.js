@@ -11,6 +11,11 @@ const buildingMenu = document.getElementById('building-menu');
 const buildingOptions = Array.from(document.querySelectorAll('.building-option'));
 const enemiesContainer = document.getElementById('enemies-container');
 const minimapEnemiesContainer = document.getElementById('minimap-enemies-container');
+const pauseBtn = document.getElementById('pause-btn');
+const pauseOverlay = document.getElementById('pause-overlay');
+const restartBtn = document.getElementById('restart-btn');
+
+let isPaused = false;
 
 // Initialize building menu
 if (buildingOptions.length === 0) {
@@ -936,6 +941,16 @@ document.addEventListener('keydown', (e) => {
             selectBuilding(building);
         }
     }
+    
+    // Pause hotkey ('P')
+    if (key === 'p') {
+        togglePause();
+    }
+    
+    // Restart hotkey ('R')
+    if (key === 'r') {
+        location.reload();
+    }
 });
 
 document.addEventListener('keyup', (e) => {
@@ -1023,6 +1038,19 @@ buildingOptions.forEach(building => {
     building.addEventListener('click', () => selectBuilding(building));
 });
 
+// Function to toggle pause state
+function togglePause() {
+    isPaused = !isPaused;
+    pauseBtn.classList.toggle('paused');
+    pauseOverlay.classList.toggle('active');
+}
+
+// Pause functionality
+pauseBtn.addEventListener('click', togglePause);
+
+// Restart functionality
+restartBtn.addEventListener('click', () => location.reload());
+
 // Performance monitoring
 const performanceMonitor = {
     fpsCounter: document.getElementById('fps-counter'),
@@ -1074,6 +1102,13 @@ const performanceMonitor = {
 };
 
 function gameLoop(currentTime) {
+    if (isPaused) {
+        // When paused, only update FPS counter and schedule next frame
+        performanceMonitor.update(currentTime);
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
     if (keys.w) y -= speed;
     if (keys.s) y += speed;
     if (keys.a) x -= speed;
