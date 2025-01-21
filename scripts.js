@@ -78,11 +78,17 @@ function updateFogOfWar() {
     const playerChunkX = Math.floor(playerCenterX / CHUNK_SIZE);
     const playerChunkY = Math.floor(playerCenterY / CHUNK_SIZE);
     
-    // Calculate visible area in chunks
-    const visibleStartX = Math.floor(cameraX / CHUNK_SIZE);
-    const visibleEndX = Math.ceil((cameraX + window.innerWidth) / CHUNK_SIZE);
-    const visibleStartY = Math.floor(cameraY / CHUNK_SIZE);
-    const visibleEndY = Math.ceil((cameraY + window.innerHeight) / CHUNK_SIZE);
+    // Calculate visible area in chunks around player
+    const visibleStartX = playerChunkX - 5;
+    const visibleEndX = playerChunkX + 5;
+    const visibleStartY = playerChunkY - 5;
+    const visibleEndY = playerChunkY + 5;
+    
+    // Calculate viewport chunks
+    const viewportStartX = Math.floor(cameraX / CHUNK_SIZE);
+    const viewportEndX = Math.ceil((cameraX + window.innerWidth) / CHUNK_SIZE);
+    const viewportStartY = Math.floor(cameraY / CHUNK_SIZE);
+    const viewportEndY = Math.ceil((cameraY + window.innerHeight) / CHUNK_SIZE);
     
     // Calculate vision radius in chunks
     const chunkRadius = 3;   // Adjusted for new chunk size to maintain similar vision range
@@ -91,18 +97,11 @@ function updateFogOfWar() {
     chunks.forEach((chunk, key) => {
         const [cx, cy] = key.split(',').map(Number);
         
-        // Skip chunks outside visible area
-        if (cx < visibleStartX || cx > visibleEndX || cy < visibleStartY || cy > visibleEndY) {
-            if (chunk.classList.contains('visible')) {
-                chunk.classList.remove('visible');
-                if (!chunk.classList.contains('explored')) {
-                    chunk.classList.add('explored');
-                }
-            }
-            return;
-        }
+        // Check if chunk is in viewport
+        const inViewport = cx >= viewportStartX && cx <= viewportEndX && 
+                         cy >= viewportStartY && cy <= viewportEndY;
         
-        // Check if chunk should be visible
+        // Check if chunk is in player vision range
         const inPlayerVision = Math.abs(cx - playerChunkX) <= chunkRadius && 
                              Math.abs(cy - playerChunkY) <= chunkRadius;
         
@@ -117,8 +116,8 @@ function updateFogOfWar() {
             }
         }
         
-        // Update chunk state only if it changed
-        const shouldBeVisible = inPlayerVision || inBuildingVision;
+        // Update main fog visibility (based on viewport)
+        const shouldBeVisible = inPlayerVision || (inViewport && inBuildingVision);
         const isVisible = chunk.classList.contains('visible');
         
         if (shouldBeVisible !== isVisible) {
@@ -132,22 +131,20 @@ function updateFogOfWar() {
                 }
             }
         }
-    });
-    
-    // Update minimap fog to match main fog (only for visible chunks)
-    minimapChunks.forEach((minimapChunk, key) => {
-        const mainChunk = chunks.get(key);
-        if (mainChunk) {
-            const [cx, cy] = key.split(',').map(Number);
-            // Only update if in visible area
-            if (cx >= visibleStartX && cx <= visibleEndX && cy >= visibleStartY && cy <= visibleEndY) {
-                minimapChunk.className = 'minimap-fog-chunk';
-                if (mainChunk.classList.contains('explored')) {
-                    minimapChunk.classList.add('explored');
-                }
-                if (mainChunk.classList.contains('visible')) {
-                    minimapChunk.classList.add('visible');
-                }
+        
+        // Update minimap chunk (buildings always provide vision on minimap)
+        const minimapChunk = minimapChunks.get(key);
+        if (minimapChunk) {
+            minimapChunk.className = 'minimap-fog-chunk';
+            
+            // For minimap, buildings always provide vision regardless of viewport
+            const minimapVisible = inPlayerVision || inBuildingVision;
+            
+            if (chunk.classList.contains('explored') || minimapVisible) {
+                minimapChunk.classList.add('explored');
+            }
+            if (minimapVisible) {
+                minimapChunk.classList.add('visible');
             }
         }
     });
@@ -183,15 +180,15 @@ let x = GAME_WIDTH / 2;
 let y = GAME_HEIGHT / 2;
 let cameraX = x - window.innerWidth / 2;
 let cameraY = y - window.innerHeight / 2;
-const speed = 2; // player speed
-
-// Track pressed keys
+const baseSpeed = 5;
+let speed = baseSpeed;
 const keys = {
     w: false,
     s: false,
     a: false,
     d: false,
-    space: false
+    space: false,
+    shift: false
 };
 
 // Add camera follow state
@@ -400,6 +397,9 @@ function updatePosition() {
     const minimapY = (y / GAME_HEIGHT) * MINIMAP_SIZE;
     minimapPlayer.style.left = minimapX + 'px';
     minimapPlayer.style.top = minimapY + 'px';
+
+    // Always update fog when position changes to ensure minimap stays current
+    scheduleFogUpdate();
 }
 
 function centerCamera() {
@@ -443,7 +443,7 @@ function gameLoop() {
 }
 
 // Edge scrolling functionality
-const cameraSpeed = 5; // Speed of camera movement
+const cameraSpeed = 15; // Increased speed from 5 to 15
 const edgeThreshold = 20; // Distance from edge to trigger camera movement
 
 let moveLeft = false;
@@ -488,6 +488,11 @@ document.addEventListener('keydown', (e) => {
         keys[key] = true;
     }
     
+    // Handle shift for speed boost
+    if (key === 'shift') {
+        speed = baseSpeed * 2; // Double the speed when shift is pressed
+    }
+    
     // Toggle camera follow with 'Y' key
     if (key === 'y') {
         cameraFollowEnabled = !cameraFollowEnabled;
@@ -516,6 +521,11 @@ document.addEventListener('keyup', (e) => {
     // Handle WASD
     if (key in keys) {
         keys[key] = false;
+    }
+    
+    // Reset speed when shift is released
+    if (key === 'shift') {
+        speed = baseSpeed;
     }
 });
 
