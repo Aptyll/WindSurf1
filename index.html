@@ -178,7 +178,64 @@
             height: 100px;
             background: #4a9eff;
             border-radius: 4px;
+            box-shadow: 0 0 20px rgba(74, 158, 255, 0.2);
         }
+        
+        .spawner {
+            width: 100px;
+            height: 100px;
+            background: #ff4a4a;
+            position: absolute;
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(255, 74, 74, 0.2);
+        }
+        
+        .spawner-counter {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 2;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .enemy {
+            width: 30px;
+            height: 30px;
+            background: #ff4a4a;
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 74, 74, 0.2);
+            transition: left 0.1s linear, top 0.1s linear;
+        }
+        
+        .minimap-spawner {
+            width: 4px;
+            height: 4px;
+            background: #ff4a4a;
+            position: absolute;
+            border-radius: 50%;
+            z-index: 2;
+        }
+        
+        .minimap-enemy {
+            width: 2px;
+            height: 2px;
+            background: #ff4a4a;
+            position: absolute;
+            border-radius: 50%;
+            z-index: 2;
+        }
+        
         .build-range {
             position: absolute;
             border: 2px solid rgba(74, 158, 255, 0.3);
@@ -207,6 +264,29 @@
                 box-shadow: 0 0 10px rgba(74, 158, 255, 0.1);
             }
         }
+        #performance-monitor {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1000;
+            pointer-events: none;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+        }
+        
+        #performance-monitor div {
+            margin: 2px 0;
+            white-space: pre;
+        }
+        
+        .perf-label {
+            color: #888;
+        }
         body {
             margin: 0;
             overflow: hidden;
@@ -215,9 +295,15 @@
     </style>
 </head>
 <body>
+    <div id="performance-monitor">
+        <div id="fps-counter"><span class="perf-label">FPS: </span>0</div>
+        <div id="frame-time"><span class="perf-label">Frame Time: </span>0 ms</div>
+        <div id="memory-usage"><span class="perf-label">Memory: </span>0 MB</div>
+    </div>
     <div id="viewport">
         <div id="gameArea">
             <div id="player"></div>
+            <div id="enemies-container"></div>
             <div id="fog-container"></div>
             <div id="ghost-building" class="ghost-building"></div>
             <div id="build-range" class="build-range"></div>
@@ -226,6 +312,7 @@
     <div id="minimap">
         <div id="minimap-viewport"></div>
         <div id="minimap-player"></div>
+        <div id="minimap-enemies-container"></div>
         <div id="minimap-fog-container"></div>
     </div>
     <div id="building-menu">
