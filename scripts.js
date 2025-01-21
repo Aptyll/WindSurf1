@@ -226,11 +226,40 @@ function getEnemyFromPool(spawner) {
     const enemy = enemyPool.find(e => !e.active);
     if (!enemy) return null;
 
-    // Initialize enemy position
+    // Initialize enemy position with collision check
     const spawnRadius = 100;
-    const angle = Math.random() * Math.PI * 2;
-    const spawnX = spawner.x + 50 + Math.cos(angle) * spawnRadius;
-    const spawnY = spawner.y + 50 + Math.sin(angle) * spawnRadius;
+    let attempts = 0;
+    let validSpawn = false;
+    let spawnX, spawnY;
+
+    while (!validSpawn && attempts < 10) {
+        const angle = Math.random() * Math.PI * 2;
+        spawnX = spawner.x + 50 + Math.cos(angle) * spawnRadius;
+        spawnY = spawner.y + 50 + Math.sin(angle) * spawnRadius;
+
+        // Check for collisions at spawn point
+        const nearby = quadtree.retrieve({
+            x: spawnX - 30,
+            y: spawnY - 30,
+            width: 90,
+            height: 90
+        });
+
+        validSpawn = true;
+        for (const other of nearby) {
+            if (spawnX < other.x + 30 &&
+                spawnX + 30 > other.x &&
+                spawnY < other.y + 30 &&
+                spawnY + 30 > other.y) {
+                validSpawn = false;
+                break;
+            }
+        }
+        attempts++;
+    }
+
+    // If we couldn't find a valid spawn point, return null
+    if (!validSpawn) return null;
 
     enemy.active = true;
     enemy.x = spawnX;
@@ -310,16 +339,100 @@ function updateEnemies() {
 
     // Update enemy positions
     enemies.forEach(enemy => {
-        // Always update position
+        // Calculate desired movement
         const dx = x - enemy.x;
         const dy = y - enemy.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance > 0) {
-            enemy.x += (dx / distance) * ENEMY_SPEED;
-            enemy.y += (dy / distance) * ENEMY_SPEED;
+            // Calculate movement vector
+            const moveX = (dx / distance) * ENEMY_SPEED;
+            const moveY = (dy / distance) * ENEMY_SPEED;
             
-            // Only update DOM if in viewport
+            // Try direct movement first
+            const newX = enemy.x + moveX;
+            const newY = enemy.y + moveY;
+            
+            // Check for collisions
+            const nearby = quadtree.retrieve({
+                x: newX - 30,
+                y: newY - 30,
+                width: 90,
+                height: 90
+            });
+
+            let collision = false;
+            for (const other of nearby) {
+                if (other.enemy !== enemy) {
+                    if (newX < other.x + 30 &&
+                        newX + 30 > other.x &&
+                        newY < other.y + 30 &&
+                        newY + 30 > other.y) {
+                        collision = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!collision) {
+                // No collision, move normally
+                enemy.x = newX;
+                enemy.y = newY;
+            } else {
+                // Try horizontal movement
+                const horizontalX = enemy.x + moveX;
+                const horizontalY = enemy.y;
+                let horizontalCollision = false;
+
+                for (const other of nearby) {
+                    if (other.enemy !== enemy) {
+                        if (horizontalX < other.x + 30 &&
+                            horizontalX + 30 > other.x &&
+                            horizontalY < other.y + 30 &&
+                            horizontalY + 30 > other.y) {
+                            horizontalCollision = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Try vertical movement
+                const verticalX = enemy.x;
+                const verticalY = enemy.y + moveY;
+                let verticalCollision = false;
+
+                for (const other of nearby) {
+                    if (other.enemy !== enemy) {
+                        if (verticalX < other.x + 30 &&
+                            verticalX + 30 > other.x &&
+                            verticalY < other.y + 30 &&
+                            verticalY + 30 > other.y) {
+                            verticalCollision = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Choose the better sliding movement
+                if (!horizontalCollision && !verticalCollision) {
+                    // If both are valid, choose the one that gets us closer to the player
+                    const horizontalDist = Math.abs(x - horizontalX) + Math.abs(y - horizontalY);
+                    const verticalDist = Math.abs(x - verticalX) + Math.abs(y - verticalY);
+                    
+                    if (horizontalDist < verticalDist) {
+                        enemy.x = horizontalX;
+                    } else {
+                        enemy.y = verticalY;
+                    }
+                } else if (!horizontalCollision) {
+                    enemy.x = horizontalX;
+                } else if (!verticalCollision) {
+                    enemy.y = verticalY;
+                }
+                // If both collide, enemy stays in place
+            }
+            
+            // Update DOM if in viewport
             if (isInViewport(enemy.x, enemy.y)) {
                 updateEntityPosition(enemy);
             } else {
