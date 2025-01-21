@@ -14,6 +14,7 @@ const minimapEnemiesContainer = document.getElementById('minimap-enemies-contain
 const pauseBtn = document.getElementById('pause-btn');
 const pauseOverlay = document.getElementById('pause-overlay');
 const restartBtn = document.getElementById('restart-btn');
+const gameTimer = document.getElementById('game-timer');
 
 let isPaused = false;
 
@@ -1049,7 +1050,90 @@ function togglePause() {
 pauseBtn.addEventListener('click', togglePause);
 
 // Restart functionality
-restartBtn.addEventListener('click', () => location.reload());
+restartBtn.addEventListener('click', () => {
+    // Reset game state
+    enemies.forEach(enemy => {
+        enemy.element.remove();
+        enemy.minimapElement.remove();
+    });
+    enemies.length = 0;
+    
+    placedBuildings.forEach(building => {
+        building.element.remove();
+        building.minimapElement.remove();
+    });
+    placedBuildings.length = 0;
+    
+    spawners.forEach(spawner => {
+        spawner.element.remove();
+        spawner.counterElement.remove();
+    });
+    spawners.length = 0;
+    
+    // Reset timer
+    gameStartTime = Date.now();
+    totalPausedTime = 0;
+    gamePauseTime = 0;
+    isPaused = false;
+    document.getElementById('pause-overlay').classList.remove('active');
+    
+    // Reset game
+    x = GAME_WIDTH / 2;
+    y = GAME_HEIGHT / 2;
+    
+    // Reset player position
+    player.style.left = x + 'px';
+    player.style.top = y + 'px';
+    
+    // Reset camera
+    centerCamera();
+    
+    // Reinitialize game components
+    initializeEnemyPool();
+    initializeSpawners();
+    initializeFog();
+    initializeMinimapFog();
+});
+
+// Game timer variables
+let gameStartTime = Date.now();
+let gamePauseTime = 0;
+let totalPausedTime = 0;
+
+// Function to format time as mm:ss
+function formatTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// Function to update game timer
+function updateGameTimer() {
+    if (!isPaused) {
+        const currentTime = Date.now();
+        const elapsedTime = currentTime - gameStartTime - totalPausedTime;
+        gameTimer.textContent = formatTime(elapsedTime);
+    }
+}
+
+// Update game timer every frame
+function update(currentTime) {
+    if (!isPaused) {
+        updatePosition();
+        updateCamera();
+        moveCamera();
+        updateEnemies();
+        updateEnemyVisibility();
+        updateSpawnerVisibility();
+        updateGhostBuilding();
+        updateBuildRange();
+        scheduleFogUpdate();
+    }
+    
+    // Always update the timer
+    updateGameTimer();
+}
 
 // Performance monitoring
 const performanceMonitor = {
@@ -1121,12 +1205,7 @@ function gameLoop(currentTime) {
         centerCamera();
     }
     
-    updatePosition();
-    updateEnemies();
-    updateCamera();
-    updateGhostBuilding();
-    updateBuildRange();
-    moveCamera();
+    update(currentTime);
     
     // Update performance metrics
     performanceMonitor.update(currentTime);
