@@ -110,10 +110,11 @@
         }
         #building-menu {
             position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
             display: flex;
+            flex-direction: column;
             gap: 10px;
             padding: 15px;
             background: rgba(26, 26, 26, 0.95);
@@ -355,6 +356,26 @@
         #pause-overlay.active {
             opacity: 1;
         }
+        #hp-bar-container {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 30px;
+            background: rgba(26, 26, 26, 0.95);
+            border: 2px solid #333;
+            border-radius: 6px;
+            overflow: hidden;
+            z-index: 1000;
+        }
+        #hp-bar {
+            width: 100%;
+            height: 100%;
+            background: #4a9eff;
+            transition: width 0.2s ease;
+            box-shadow: 0 0 10px rgba(74, 158, 255, 0.3);
+        }
         body {
             margin: 0;
             overflow: hidden;
@@ -382,6 +403,9 @@
             <div id="ghost-building" class="ghost-building"></div>
             <div id="build-range" class="build-range"></div>
         </div>
+    </div>
+    <div id="hp-bar-container">
+        <div id="hp-bar"></div>
     </div>
     <div id="minimap">
         <div id="minimap-viewport"></div>
