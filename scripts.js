@@ -15,6 +15,10 @@ const pauseBtn = document.getElementById('pause-btn');
 const pauseOverlay = document.getElementById('pause-overlay');
 const restartBtn = document.getElementById('restart-btn');
 const gameTimer = document.getElementById('game-timer');
+const hpBar = document.getElementById('hp-bar');
+const xpBar = document.getElementById('xp-bar');
+const levelIndicator = document.getElementById('level-indicator');
+const bulletsContainer = document.getElementById('bullets-container');
 
 let isPaused = false;
 
@@ -42,6 +46,9 @@ const MIN_SPAWNER_DISTANCE = 800;
 const MAX_ENEMIES_PER_SPAWNER = 3;
 const ENEMY_POOL_SIZE = 50; // Pre-create 50 enemies
 const VIEWPORT_BUFFER = 200; // Extra area around viewport to keep enemies active
+const BULLET_SPEED = 15;
+const FIRE_RATE = 250; // milliseconds between shots
+const XP_PER_KILL = 15;  // Amount of XP gained per enemy kill
 
 // Game state
 const chunks = new Map();
@@ -51,6 +58,8 @@ const placedBuildings = [];
 const spawners = [];
 let enemyPool = [];
 let pendingUpdates = new Map(); // Store position updates for batch processing
+let bullets = [];
+let lastFireTime = 0;
 
 class Quadtree {
     constructor(bounds, maxObjects = 10, maxLevels = 4, level = 0) {
@@ -736,7 +745,7 @@ let x = GAME_WIDTH / 2;
 let y = GAME_HEIGHT / 2;
 let cameraX = x - window.innerWidth / 2;
 let cameraY = y - window.innerHeight / 2;
-const baseSpeed = 5;
+const baseSpeed = 2;  // Reduced from 5
 let speed = baseSpeed;
 const keys = {
     w: false,
@@ -744,7 +753,8 @@ const keys = {
     a: false,
     d: false,
     space: false,
-    shift: false
+    shift: false,
+    leftClick: false
 };
 
 // Add camera follow state
@@ -839,15 +849,25 @@ function placeBuilding(x, y) {
 }
 
 function updatePosition() {
+    // Calculate angle between player and mouse
+    const dx = mouseX - (window.innerWidth / 2);
+    const dy = mouseY - (window.innerHeight / 2);
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    
+    // Update position
     player.style.left = x + 'px';
     player.style.top = y + 'px';
     
+    // Add rotation
+    player.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+    
+    // Update minimap
     const minimapX = (x / GAME_WIDTH) * MINIMAP_SIZE;
     const minimapY = (y / GAME_HEIGHT) * MINIMAP_SIZE;
     minimapPlayer.style.left = minimapX + 'px';
     minimapPlayer.style.top = minimapY + 'px';
 
-    // Always update fog when position changes to ensure minimap stays current
+    // Always update fog when position changes
     scheduleFogUpdate();
 }
 
@@ -1117,6 +1137,91 @@ function updateGameTimer() {
     }
 }
 
+// Bullet system
+function fireBullet() {
+    const currentTime = Date.now();
+    if (currentTime - lastFireTime < FIRE_RATE) return;
+    
+    // Calculate bullet direction from player to mouse
+    const dx = mouseX - (window.innerWidth / 2);
+    const dy = mouseY - (window.innerHeight / 2);
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const directionX = dx / distance;
+    const directionY = dy / distance;
+    
+    // Create bullet
+    const bullet = document.createElement('div');
+    bullet.className = 'bullet';
+    bullet.style.left = (x + directionX * 30) + 'px'; // Start at gun tip
+    bullet.style.top = (y + directionY * 30) + 'px';
+    bulletsContainer.appendChild(bullet);
+    
+    // Add to bullets array
+    bullets.push({
+        element: bullet,
+        x: x + directionX * 30,
+        y: y + directionY * 30,
+        directionX: directionX,
+        directionY: directionY
+    });
+    
+    lastFireTime = currentTime;
+}
+
+function updateBullets() {
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const bullet = bullets[i];
+        
+        // Update position
+        bullet.x += bullet.directionX * BULLET_SPEED;
+        bullet.y += bullet.directionY * BULLET_SPEED;
+        bullet.element.style.left = bullet.x + 'px';
+        bullet.element.style.top = bullet.y + 'px';
+        
+        // Check for enemy collisions
+        const bulletBounds = {
+            x: bullet.x - 4,
+            y: bullet.y - 4,
+            width: 8,
+            height: 8
+        };
+        
+        const nearbyEnemies = quadtree.retrieve(bulletBounds);
+        let hitEnemy = false;
+        
+        for (const enemyObj of nearbyEnemies) {
+            const enemy = enemyObj.enemy;
+            // Simple collision check
+            if (Math.abs(bullet.x - enemy.x) < 20 && Math.abs(bullet.y - enemy.y) < 20) {
+                // Remove enemy and its minimap marker
+                enemy.element.remove();
+                enemy.minimapElement.remove();
+                const index = enemies.indexOf(enemy);
+                if (index > -1) {
+                    enemies.splice(index, 1);
+                }
+                // Add enemy back to pool
+                enemyPool.push(enemy);
+                
+                // Grant XP for the kill
+                gainXP(XP_PER_KILL);
+                
+                // Remove bullet
+                hitEnemy = true;
+                break;
+            }
+        }
+        
+        // Remove if hit enemy or out of bounds
+        if (hitEnemy || 
+            bullet.x < 0 || bullet.x > GAME_WIDTH || 
+            bullet.y < 0 || bullet.y > GAME_HEIGHT) {
+            bulletsContainer.removeChild(bullet.element);
+            bullets.splice(i, 1);
+        }
+    }
+}
+
 // Update game timer every frame
 function update(currentTime) {
     if (!isPaused) {
@@ -1128,10 +1233,16 @@ function update(currentTime) {
         updateSpawnerVisibility();
         updateGhostBuilding();
         updateBuildRange();
+        updateBullets();
+        
+        // Check for firing
+        if (keys.leftClick) {
+            fireBullet();
+        }
+        
         scheduleFogUpdate();
     }
     
-    // Always update the timer
     updateGameTimer();
 }
 
@@ -1225,7 +1336,6 @@ centerCamera();
 gameLoop();
 
 // HP bar functionality
-const hpBar = document.getElementById('hp-bar');
 let currentHP = 100;
 const maxHP = 100;
 
@@ -1244,5 +1354,37 @@ function heal(amount) {
     updateHPBar();
 }
 
-// Initialize HP bar
+// XP bar functionality
+let currentXP = 0;
+let currentLevel = 1;
+
+function gainXP(amount) {
+    currentXP = Math.min(100, currentXP + amount);
+    updateXPBar();
+}
+
+function updateXPBar() {
+    xpBar.style.width = `${currentXP}%`;
+    if (currentXP >= 100) {
+        currentXP = 0;
+        currentLevel++;
+        levelIndicator.textContent = currentLevel;
+    }
+}
+
+// Initialize bars
 updateHPBar();
+updateXPBar();
+
+// Fire on left click
+viewport.addEventListener('mousedown', (e) => {
+    if (e.button === 0) { // Left click
+        keys.leftClick = true;
+    }
+});
+
+viewport.addEventListener('mouseup', (e) => {
+    if (e.button === 0) { // Left click
+        keys.leftClick = false;
+    }
+});
