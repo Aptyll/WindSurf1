@@ -1223,3 +1223,26 @@ initializeEnemyPool();
 initializeSpawners();
 centerCamera();
 gameLoop();
+
+// HP bar functionality
+const hpBar = document.getElementById('hp-bar');
+let currentHP = 100;
+const maxHP = 100;
+
+function updateHPBar() {
+    const hpPercentage = (currentHP / maxHP) * 100;
+    hpBar.style.width = `${hpPercentage}%`;
+}
+
+function takeDamage(amount) {
+    currentHP = Math.max(0, currentHP - amount);
+    updateHPBar();
+}
+
+function heal(amount) {
+    currentHP = Math.min(maxHP, currentHP + amount);
+    updateHPBar();
+}
+
+// Initialize HP bar
+updateHPBar();
