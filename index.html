@@ -41,11 +41,29 @@
             height: 50px;
             background: #4a9eff;
             position: absolute;
-            left: 50%;
-            top: 50%;
             transform: translate(-50%, -50%);
-            border-radius: 4px;
+            border-radius: 3px;
             box-shadow: 0 0 20px rgba(74, 158, 255, 0.2);
+            border: 2px solid #3a7ecc;
+        }
+        #gun-indicator {
+            position: absolute;
+            width: 24px;
+            height: 6px;
+            background: #3a7ecc;
+            right: -4px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 1px;
+        }
+        #gun-stock {
+            position: absolute;
+            width: 4px;
+            height: 8px;
+            background: #3a7ecc;
+            right: -4px;
+            top: 50%;
+            transform: translateY(-50%);
         }
         #viewport {
             position: fixed;
@@ -250,6 +268,16 @@
             box-shadow: 0 0 20px rgba(74, 158, 255, 0.2);
         }
 
+        .bullet {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #3a7ecc;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
         @keyframes pulse {
             0% {
                 border-color: rgba(74, 158, 255, 0.1);
@@ -376,6 +404,36 @@
             transition: width 0.2s ease;
             box-shadow: 0 0 10px rgba(74, 158, 255, 0.3);
         }
+        #xp-bar-container {
+            position: fixed;
+            bottom: 65px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 15px;
+            background: rgba(26, 26, 26, 0.95);
+            border: 2px solid #333;
+            border-radius: 6px;
+            overflow: hidden;
+            z-index: 1000;
+        }
+        #xp-bar {
+            width: 0%;
+            height: 100%;
+            background: #9467c4;
+            transition: width 0.2s ease;
+            box-shadow: 0 0 10px rgba(148, 103, 196, 0.3);
+        }
+        #level-indicator {
+            position: absolute;
+            left: -35px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9467c4;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+        }
         body {
             margin: 0;
             overflow: hidden;
@@ -397,12 +455,20 @@
     </div>
     <div id="viewport">
         <div id="gameArea">
-            <div id="player"></div>
+            <div id="bullets-container"></div>
+            <div id="player">
+                <div id="gun-stock"></div>
+                <div id="gun-indicator"></div>
+            </div>
             <div id="enemies-container"></div>
             <div id="fog-container"></div>
             <div id="ghost-building" class="ghost-building"></div>
             <div id="build-range" class="build-range"></div>
         </div>
+    </div>
+    <div id="xp-bar-container">
+        <div id="level-indicator">1</div>
+        <div id="xp-bar"></div>
     </div>
     <div id="hp-bar-container">
         <div id="hp-bar"></div>
